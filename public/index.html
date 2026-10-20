@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job Tracker</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="#/">Job Tracker</a>
+    <form id="add-form">
+      <input id="add-url" type="url" placeholder="Paste a job URL and press Enter…" autocomplete="off" required>
+      <button type="submit">Add</button>
+    </form>
+  </header>
+  <div id="toast" hidden></div>
+  <main id="app"></main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
