@@ -131,6 +131,7 @@ function card(job) {
     h('div', { class: 'card-company' }, job.company),
     meta.length && h('div', { class: 'chips' }, meta.map((m) => h('span', { class: `chip ${m === job.workType ? 'wt-' + m.toLowerCase() : ''}` }, m))),
     job.ats && h('div', { class: 'ats' }, job.ats),
+    job.match && h('div', { class: `score-badge v-${job.match.verdict}`, title: `Match: ${job.match.verdict}` }, String(job.match.score)),
     h('button', {
       class: `referral-btn${job.referral ? ' on' : ''}`,
       title: job.referral ? 'Has an insider referral (click to unset)' : 'Mark as referred by an insider',
@@ -252,6 +253,94 @@ function rescrapeButton(job) {
   return btn;
 }
 
+// Rendered markdown that turns into a textarea on click; blur / Esc / Cmd+Enter renders again. Autosaves job[key].
+function mdEditor(job, key, placeholder, { minHeight = 240 } = {}) {
+  const view = h('div', { class: 'md', title: 'Click to edit' });
+  const editor = h('textarea', { class: 'editor', placeholder, spellcheck: 'true' });
+  editor.value = job[key] || '';
+  const box = h('div', { class: 'notes' }, view, editor);
+  box.style.setProperty('--min-h', minHeight + 'px');
+
+  const autosize = () => {
+    editor.style.height = 'auto';
+    editor.style.height = Math.max(minHeight, editor.scrollHeight + 4) + 'px';
+  };
+  const showView = () => {
+    view.innerHTML = (job[key] || '').trim() ? renderMarkdown(job[key]) : `<p class="placeholder">${placeholder}</p>`;
+    view.hidden = false;
+    editor.hidden = true;
+  };
+  const showEditor = () => {
+    view.hidden = true;
+    editor.hidden = false;
+    autosize();
+    editor.focus();
+    editor.setSelectionRange(editor.value.length, editor.value.length);
+  };
+  view.addEventListener('click', (e) => {
+    if (e.target.closest('a')) return;
+    if (e.target.matches('input[type=checkbox]')) {
+      job[key] = toggleTask(job[key], Number(e.target.dataset.task));
+      editor.value = job[key];
+      patch(job, { [key]: job[key] });
+      return;
+    }
+    showEditor();
+  });
+  editor.addEventListener('input', () => {
+    job[key] = editor.value;
+    autosize();
+    patch(job, { [key]: editor.value }, { debounce: 500 });
+  });
+  editor.addEventListener('blur', showView);
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key === 'Enter')) editor.blur();
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      document.execCommand('insertText', false, '  ');
+    }
+  });
+  showView();
+  return { el: box, showEditor, isEmpty: () => !(job[key] || '').trim() };
+}
+
+// Runs a NotebookLM-backed action; on success copies `fields` from the response onto job and re-renders.
+function aiButton(label, job, endpoint, fields) {
+  const btn = h('button', { class: 'secondary' }, label);
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Asking NotebookLM…';
+    try {
+      const { job: fresh } = await req('POST', `/jobs/${job.id}/${endpoint}`);
+      for (const k of fields) job[k] = fresh[k];
+      if (location.hash === `#/job/${job.id}`) renderDetail(job.id);
+    } catch (e) {
+      toast(e.message, true);
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  });
+  return btn;
+}
+
+function matchPanel(job) {
+  const m = job.match;
+  const list = (title, items, cls) =>
+    items?.length ? h('div', { class: `m-list ${cls}` }, h('h4', {}, title), h('ul', {}, items.map((i) => h('li', {}, i)))) : null;
+  return h('div', { class: 'match' },
+    m
+      ? h('div', {},
+          h('div', { class: 'match-head' },
+            h('span', { class: `score v-${m.verdict}` }, String(m.score)),
+            h('span', { class: 'verdict' }, m.verdict),
+            h('span', { class: 'muted' }, `scored ${new Date(m.at).toLocaleDateString()}`)),
+          h('p', {}, m.summary),
+          h('div', { class: 'm-cols' }, list('Strengths', m.strengths, 'good'), list('Gaps', m.gaps, 'warn'), list('Red flags', m.redFlags, 'bad')))
+      : h('p', { class: 'muted' }, 'Not scored yet.'),
+    aiButton(m ? '↻ Re-run match' : 'Analyze match', job, 'match', ['match'])
+  );
+}
+
 function renderDetail(id) {
   const job = state.jobs.find((j) => j.id === id);
   if (!job) {
@@ -263,52 +352,8 @@ function renderDetail(id) {
   titleInput.addEventListener('blur', () => patch(job, { title: titleInput.value }));
   titleInput.addEventListener('keydown', (e) => e.key === 'Enter' && titleInput.blur());
 
-  // Notes: rendered markdown, click to edit, blur / Esc to render again.
-  const view = h('div', { class: 'md', title: 'Click to edit' });
-  const editor = h('textarea', { class: 'editor', placeholder: 'Write notes in Markdown…', spellcheck: 'true' });
-  editor.value = job.notes;
-  const notes = h('div', { class: 'notes' }, view, editor);
-
-  const showView = () => {
-    view.innerHTML = job.notes.trim() ? renderMarkdown(job.notes) : '<p class="placeholder">Click to add notes (Markdown supported)…</p>';
-    view.hidden = false;
-    editor.hidden = true;
-  };
-  const showEditor = (focusAt) => {
-    view.hidden = true;
-    editor.hidden = false;
-    autosize(editor);
-    editor.focus();
-    if (focusAt === 'end') editor.setSelectionRange(editor.value.length, editor.value.length);
-  };
-  const autosize = (t) => {
-    t.style.height = 'auto';
-    t.style.height = Math.max(240, t.scrollHeight + 4) + 'px';
-  };
-  view.addEventListener('click', (e) => {
-    if (e.target.closest('a')) return;
-    if (e.target.matches('input[type=checkbox]')) {
-      job.notes = toggleTask(job.notes, Number(e.target.dataset.task));
-      editor.value = job.notes;
-      patch(job, { notes: job.notes });
-      return;
-    }
-    showEditor('end');
-  });
-  editor.addEventListener('input', () => {
-    job.notes = editor.value;
-    autosize(editor);
-    patch(job, { notes: editor.value }, { debounce: 500 });
-  });
-  editor.addEventListener('blur', showView);
-  editor.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key === 'Enter')) editor.blur();
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      document.execCommand('insertText', false, '  ');
-    }
-  });
-  showView();
+  const notes = mdEditor(job, 'notes', 'Click to add notes (Markdown supported)…');
+  const letter = mdEditor(job, 'coverLetter', 'No cover letter yet. Generate one, or click to write your own…', { minHeight: 160 });
 
   const desc = job.description
     ? h('details', { class: 'desc' }, h('summary', {}, 'Scraped description'), h('pre', {}, job.description))
@@ -347,12 +392,22 @@ function renderDetail(id) {
           h('input', { type: 'checkbox', checked: !!job.referral, onchange: (e) => patch(job, { referral: e.target.checked }) }),
           h('span', { class: 'slider' }), h('span', { class: 'switch-label' }, '🤝 Someone is recommending me')))
     ),
+    h('h3', {}, 'Match'),
+    matchPanel(job),
+    h('h3', {}, 'Cover letter'),
+    letter.el,
+    h('div', { class: 'row' },
+      aiButton(job.coverLetter ? '↻ Regenerate letter' : 'Generate cover letter', job, 'cover-letter', ['coverLetter', 'coverLetterAt']),
+      job.coverLetter && h('button', { class: 'secondary', onclick: async (e) => {
+        await navigator.clipboard.writeText(job.coverLetter);
+        e.target.textContent = 'Copied ✓';
+      } }, 'Copy')),
     h('h3', {}, 'Notes'),
-    notes,
+    notes.el,
     desc
   );
   app.replaceChildren(page);
-  if (!job.notes.trim()) showEditor('end');
+  if (notes.isEmpty()) notes.showEditor();
 }
 
 /* ---------- Routing ---------- */

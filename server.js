@@ -4,14 +4,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { scrape } from './scraper.js';
+import { askNotebook, matchPrompt, letterPrompt, parseMatch } from './nblm.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const DATA = path.join(ROOT, 'data', 'jobs');
+const DATA = process.env.DATA_DIR || path.join(ROOT, 'data', 'jobs');
 const PUBLIC = path.join(ROOT, 'public');
 const PORT = Number(process.env.PORT) || 3000;
 
 const STATUSES = ['saved', 'applied', 'screening', 'interviewing', 'offer', 'rejected'];
-const EDITABLE = ['title', 'company', 'url', 'ats', 'status', 'notes', 'referral', 'pay', 'workType', 'location', 'order'];
+const EDITABLE = ['title', 'company', 'url', 'ats', 'status', 'notes', 'coverLetter', 'referral', 'pay', 'workType', 'location', 'order'];
 const SCRAPED = ['title', 'company', 'ats', 'pay', 'workType', 'location', 'description'];
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
@@ -122,6 +123,29 @@ async function api(req, res, url) {
     job.updatedAt = new Date().toISOString();
     await write(job);
     return send(res, 200, { job, scrapeError: scraped.error });
+  }
+
+  // NotebookLM-backed features. Failures leave the job untouched.
+  if (req.method === 'POST' && (sub === 'match' || sub === 'cover-letter')) {
+    try {
+      let result;
+      if (sub === 'match') {
+        result = parseMatch(await askNotebook(matchPrompt(job)));
+      } else {
+        result = (await askNotebook(letterPrompt(job))).trim();
+        if (!result) throw new Error('NotebookLM returned an empty letter');
+      }
+      // The call can take a while; re-read so edits made meanwhile (notes etc.) aren't clobbered.
+      job = JSON.parse(await fs.readFile(file(id), 'utf8'));
+      const now = new Date().toISOString();
+      if (sub === 'match') job.match = { ...result, at: now };
+      else Object.assign(job, { coverLetter: result, coverLetterAt: now });
+      job.updatedAt = now;
+      await write(job);
+      return send(res, 200, { job });
+    } catch (e) {
+      return send(res, 502, { error: e.message });
+    }
   }
 
   if (req.method === 'PATCH') {

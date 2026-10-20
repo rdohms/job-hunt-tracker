@@ -88,3 +88,21 @@ h3 { margin: 0 0 8px; }
 .switch .switch-label { font-size: 13px; color: var(--text); text-transform: none; letter-spacing: 0; }
 button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 10px; }
 button:disabled { opacity: .6; cursor: wait; }
+
+/* Match + cover letter */
+.muted { color: var(--muted); }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.notes { min-height: var(--min-h, 240px); }
+.match { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; }
+.match-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.verdict { text-transform: uppercase; font-size: 12px; letter-spacing: .06em; font-weight: 600; }
+.score, .score-badge { font-weight: 700; border-radius: 6px; padding: 1px 8px; color: #fff; background: var(--muted); }
+.score { font-size: 20px; }
+.score-badge { position: absolute; right: 8px; bottom: 6px; font-size: 11px; }
+.card:has(.has-notes) .score-badge { right: 30px; }
+.v-strong { background: #16a34a; } .v-maybe { background: #d97706; } .v-weak { background: #dc2626; }
+.m-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 10px 0; }
+.m-list h4 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.m-list.good h4 { color: #16a34a; } .m-list.warn h4 { color: #d97706; } .m-list.bad h4 { color: #dc2626; }
+.m-list ul { margin: 0; padding-left: 18px; }
+.editor, .md { min-height: var(--min-h, 240px); }

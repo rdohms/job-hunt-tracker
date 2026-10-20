@@ -4,6 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "start:all": "node scripts/dev.js",
+    "bridge": "uv run --project bridge uvicorn app:app --app-dir bridge --host 127.0.0.1 --port 8000",
+    "bridge:login": "uv run --project bridge notebooklm login"
   }
 }
