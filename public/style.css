@@ -86,3 +86,5 @@ h3 { margin: 0 0 8px; }
 .switch input:checked + .slider::after { transform: translateX(16px); }
 .switch input:focus-visible + .slider { outline: 2px solid var(--accent); }
 .switch .switch-label { font-size: 13px; color: var(--text); text-transform: none; letter-spacing: 0; }
+button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 10px; }
+button:disabled { opacity: .6; cursor: wait; }

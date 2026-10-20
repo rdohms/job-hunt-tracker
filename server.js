@@ -12,6 +12,7 @@ const PORT = Number(process.env.PORT) || 3000;
 
 const STATUSES = ['saved', 'applied', 'screening', 'interviewing', 'offer', 'rejected'];
 const EDITABLE = ['title', 'company', 'url', 'ats', 'status', 'notes', 'referral', 'pay', 'workType', 'location', 'order'];
+const SCRAPED = ['title', 'company', 'ats', 'pay', 'workType', 'location', 'description'];
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
 await fs.mkdir(DATA, { recursive: true });
@@ -113,6 +114,15 @@ async function api(req, res, url) {
   }
 
   if (req.method === 'GET') return send(res, 200, { job });
+
+  // Re-run the scraper; overwrite only fields it actually found. Notes/status/referral are never touched.
+  if (req.method === 'POST' && sub === 'rescrape') {
+    const scraped = await scrape(job.url);
+    for (const k of SCRAPED) if (scraped[k]) job[k] = scraped[k];
+    job.updatedAt = new Date().toISOString();
+    await write(job);
+    return send(res, 200, { job, scrapeError: scraped.error });
+  }
 
   if (req.method === 'PATCH') {
     const body = await readBody(req);

@@ -233,6 +233,25 @@ function setSaveState(text) {
   if (el) el.textContent = text;
 }
 
+function rescrapeButton(job) {
+  const btn = h('button', { class: 'secondary', title: 'Re-fetch title, company, pay, location and description from the URL (notes and status are kept)' }, '↻ Re-scrape');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Scraping…';
+    try {
+      const { job: fresh, scrapeError } = await req('POST', `/jobs/${job.id}/rescrape`);
+      for (const k of ['title', 'company', 'ats', 'pay', 'workType', 'location', 'description']) job[k] = fresh[k];
+      toast(scrapeError ? `Partial re-scrape (${scrapeError})` : 'Re-scraped', !!scrapeError);
+      if (location.hash === `#/job/${job.id}`) renderDetail(job.id);
+    } catch (e) {
+      toast(e.message, true);
+      btn.disabled = false;
+      btn.textContent = '↻ Re-scrape';
+    }
+  });
+  return btn;
+}
+
 function renderDetail(id) {
   const job = state.jobs.find((j) => j.id === id);
   if (!job) {
@@ -302,6 +321,7 @@ function renderDetail(id) {
       'div', { class: 'detail-bar' },
       h('a', { href: '#/', class: 'back' }, '← Board'),
       h('span', { id: 'save-state' }, ''),
+      rescrapeButton(job),
       h('button', {
         class: 'danger',
         onclick: async () => {

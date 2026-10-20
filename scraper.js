@@ -147,31 +147,67 @@ function linkedinParse(html) {
   };
 }
 
+const getJson = async (api) => {
+  const r = await fetch(api, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(10000) });
+  return r.ok ? r.json() : null;
+};
+
+async function ashbyJob(co, id) {
+  const j = await getJson(`https://api.ashbyhq.com/posting-api/job-board/${co}?includeCompensation=true`);
+  const job = j?.jobs?.find((x) => x.id === id);
+  if (!job) return null;
+  return {
+    title: job.title,
+    company: co,
+    location: job.location,
+    workType: job.isRemote ? 'Remote' : job.workplaceType || '',
+    description: job.descriptionPlain,
+    pay: job.compensation?.compensationTierSummary || '',
+  };
+}
+
+// Company career pages that embed a board (?ashby_jid=… / ?gh_jid=…): the board slug is only in the HTML.
+async function embeddedAts(url, html) {
+  const u = new URL(url);
+  try {
+    const ashbyId = u.searchParams.get('ashby_jid');
+    if (ashbyId) {
+      const co = /ashbyhq\.com\/([\w-]+)\/(?:embed|jobs)|jobs\.ashbyhq\.com\/([\w-]+)/i.exec(html);
+      const slug = co?.[1] || co?.[2];
+      if (slug) return { ats: 'Ashby', ...(await ashbyJob(slug, ashbyId)) };
+    }
+    const ghId = u.searchParams.get('gh_jid');
+    if (ghId) {
+      const slug = /greenhouse\.io\/embed\/job_board(?:\/js)?\?for=([\w-]+)/i.exec(html)?.[1];
+      if (slug) return await greenhouseJob(slug, ghId);
+    }
+  } catch { /* fall back to HTML parsing */ }
+  return null;
+}
+
+async function greenhouseJob(board, id) {
+  const j = await getJson(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${id}?pay_transparency=true`);
+  if (!j) return null;
+  const pay = j.pay_input_ranges?.[0];
+  return {
+    title: j.title,
+    company: j.company_name,
+    location: j.location?.name,
+    description: htmlToText(decode(j.content || '')),
+    pay: pay ? `${money(pay.min_cents / 100, pay.currency_type)} – ${money(pay.max_cents / 100, pay.currency_type)}` : '',
+  };
+}
+
 // Public JSON APIs for the common ATS boards give much cleaner data than HTML.
 async function atsApi(url) {
   const u = new URL(url);
-  const get = async (api) => {
-    const r = await fetch(api, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(10000) });
-    return r.ok ? r.json() : null;
-  };
+  const get = getJson;
   try {
     if (/greenhouse\.io$/.test(u.hostname)) {
       const m = /^\/([^/]+)\/jobs\/(\d+)/.exec(u.pathname);
       const board = m?.[1] || u.searchParams.get('for');
       const id = m?.[2] || u.searchParams.get('gh_jid');
-      if (board && id) {
-        const j = await get(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${id}?pay_transparency=true`);
-        if (j) {
-          const pay = j.pay_input_ranges?.[0];
-          return {
-            title: j.title,
-            company: j.company_name,
-            location: j.location?.name,
-            description: htmlToText(decode(j.content || '')),
-            pay: pay ? `${money(pay.min_cents / 100, pay.currency_type)} – ${money(pay.max_cents / 100, pay.currency_type)}` : '',
-          };
-        }
-      }
+      if (board && id) return await greenhouseJob(board, id);
     }
     if (u.hostname === 'jobs.lever.co') {
       const [, co, id] = u.pathname.split('/');
@@ -192,20 +228,7 @@ async function atsApi(url) {
     }
     if (u.hostname === 'jobs.ashbyhq.com') {
       const [, co, id] = u.pathname.split('/');
-      if (co && id) {
-        const j = await get(`https://api.ashbyhq.com/posting-api/job-board/${co}?includeCompensation=true`);
-        const job = j?.jobs?.find((x) => x.id === id);
-        if (job) {
-          return {
-            title: job.title,
-            company: co,
-            location: job.location,
-            workType: job.isRemote ? 'Remote' : job.workplaceType || '',
-            description: job.descriptionPlain,
-            pay: job.compensation?.compensationTierSummary || '',
-          };
-        }
-      }
+      if (co && id) return await ashbyJob(co, id);
     }
   } catch { /* fall through to HTML */ }
   return null;
@@ -248,6 +271,7 @@ export async function scrape(url) {
   }
 
   if (html) {
+    merge(await embeddedAts(url, html));
     const jp = jsonLdJobPosting(html);
     const meta = metaTags(html);
     if (/linkedin\.com$/.test(new URL(url).hostname)) merge(linkedinParse(html));
