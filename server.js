@@ -12,7 +12,20 @@ const PUBLIC = path.join(ROOT, 'public');
 const PORT = Number(process.env.PORT) || 3000;
 
 const STATUSES = ['saved', 'applied', 'screening', 'interviewing', 'offer', 'rejected'];
-const EDITABLE = ['title', 'company', 'url', 'ats', 'status', 'notes', 'coverLetter', 'referral', 'pay', 'workType', 'location', 'order'];
+const REJECTION_REASONS = [
+  'No response / ghosted',
+  'Rejected after application review',
+  'Failed recruiter screen',
+  'Failed technical interview',
+  'Failed hiring manager / team interview',
+  'Position filled or cancelled',
+  'Compensation mismatch',
+  'Location / work-type mismatch',
+  'Seniority / experience mismatch',
+  'Withdrew',
+  'Other',
+];
+const EDITABLE = ['title', 'company', 'url', 'ats', 'status', 'notes', 'coverLetter', 'referral', 'rejectionReason', 'rejectionNotes', 'pay', 'workType', 'location', 'order'];
 const SCRAPED = ['title', 'company', 'ats', 'pay', 'workType', 'location', 'description'];
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
@@ -46,7 +59,7 @@ async function api(req, res, url) {
   const [resource, id, sub] = parts;
   if (resource !== 'jobs') return send(res, 404, { error: 'not found' });
 
-  if (req.method === 'GET' && !id) return send(res, 200, { statuses: STATUSES, jobs: await readAll() });
+  if (req.method === 'GET' && !id) return send(res, 200, { statuses: STATUSES, rejectionReasons: REJECTION_REASONS, jobs: await readAll() });
 
   if (req.method === 'POST' && !id) {
     const { url: target } = await readBody(req);

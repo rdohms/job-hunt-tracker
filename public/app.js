@@ -8,7 +8,7 @@ const LABELS = {
 };
 const WORK_TYPES = ['', 'Remote', 'Hybrid', 'On-site'];
 
-let state = { statuses: [], jobs: [] };
+let state = { statuses: [], rejectionReasons: [], jobs: [] };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const h = (tag, props = {}, ...kids) => {
@@ -130,6 +130,7 @@ function card(job) {
     h('div', { class: 'card-title' }, job.title),
     h('div', { class: 'card-company' }, job.company),
     meta.length && h('div', { class: 'chips' }, meta.map((m) => h('span', { class: `chip ${m === job.workType ? 'wt-' + m.toLowerCase() : ''}` }, m))),
+    job.status === 'rejected' && job.rejectionReason && h('div', { class: 'reject-reason', title: job.rejectionNotes || '' }, `✕ ${job.rejectionReason}`),
     job.ats && h('div', { class: 'ats' }, job.ats),
     job.match && h('div', { class: `score-badge v-${job.match.verdict}`, title: `Match: ${job.match.verdict}` }, String(job.match.score)),
     h('button', {
@@ -175,6 +176,8 @@ function wireDropZone(col, cards) {
     e.preventDefault();
     e.stopPropagation();
     document.querySelectorAll('.column.over').forEach((c) => c.classList.remove('over'));
+    const moved = state.jobs.find((x) => x.id === dragging.dataset.id);
+    const prevStatus = moved?.status;
     // Persist every column that might have changed (cheap, and server skips no-ops).
     const columns = {};
     document.querySelectorAll('.column').forEach((c) => {
@@ -191,6 +194,7 @@ function wireDropZone(col, cards) {
     });
     try {
       await req('POST', '/jobs/reorder', { columns });
+      if (moved?.status === 'rejected' && prevStatus !== 'rejected') rejectDialog(moved);
     } catch (err) {
       toast(`Save failed: ${err.message}`, true);
       await load();
@@ -201,11 +205,57 @@ function wireDropZone(col, cards) {
 
 /* ---------- Detail page ---------- */
 
+const reasonSelect = (current) =>
+  h('select', {},
+    h('option', { value: '' }, '— select a reason —'),
+    state.rejectionReasons.map((r) => h('option', { value: r, selected: r === current }, r)));
+
+// Shown when a card is dropped into Rejected. Skippable; can be filled in later on the job page.
+function rejectDialog(job) {
+  const select = reasonSelect(job.rejectionReason);
+  const note = h('input', { type: 'text', placeholder: 'Notes (optional)', value: job.rejectionNotes || '' });
+  const dlg = h('dialog', { class: 'reject-dialog' },
+    h('form', { method: 'dialog' },
+      h('h3', {}, `Rejected: ${job.title}`),
+      h('label', { class: 'field' }, h('span', {}, 'Reason'), select),
+      h('label', { class: 'field' }, h('span', {}, 'Notes'), note),
+      h('div', { class: 'row end' },
+        h('button', { type: 'button', class: 'secondary', onclick: () => dlg.close('skip') }, 'Skip'),
+        h('button', { type: 'submit', value: 'save' }, 'Save'))));
+  dlg.addEventListener('close', async () => {
+    if (dlg.returnValue === 'save') {
+      await patch(job, { rejectionReason: select.value, rejectionNotes: note.value });
+      render();
+    }
+    dlg.remove();
+  });
+  document.body.append(dlg);
+  dlg.showModal();
+  select.focus();
+}
+
+function rejectionSection(job) {
+  if (job.status !== 'rejected') return null;
+  const select = reasonSelect(job.rejectionReason);
+  select.addEventListener('change', () => patch(job, { rejectionReason: select.value }));
+  const note = h('input', { type: 'text', value: job.rejectionNotes || '', placeholder: 'What happened? Feedback, who said it, dates…' });
+  note.addEventListener('blur', () => patch(job, { rejectionNotes: note.value }));
+  note.addEventListener('keydown', (e) => e.key === 'Enter' && note.blur());
+  return h('div', { class: 'rejection' },
+    h('h3', {}, 'Rejection'),
+    h('div', { class: 'fields' },
+      h('label', { class: 'field' }, h('span', {}, 'Reason'), select),
+      h('label', { class: 'field wide' }, h('span', {}, 'Notes'), note)));
+}
+
 function field(label, key, job, opts = {}) {
   const input = opts.options
     ? h('select', {}, opts.options.map(([v, l]) => h('option', { value: v, selected: v === job[key] }, l)))
     : h('input', { type: 'text', value: job[key] || '', placeholder: opts.placeholder || '' });
-  const save = () => patch(job, { [key]: input.value });
+  const save = async () => {
+    await patch(job, { [key]: input.value });
+    if (key === 'status') renderDetail(job.id); // shows/hides the rejection section
+  };
   input.addEventListener(opts.options ? 'change' : 'blur', save);
   if (!opts.options) input.addEventListener('keydown', (e) => e.key === 'Enter' && input.blur());
   return h('label', { class: 'field' }, h('span', {}, label), input);
@@ -392,6 +442,7 @@ function renderDetail(id) {
           h('input', { type: 'checkbox', checked: !!job.referral, onchange: (e) => patch(job, { referral: e.target.checked }) }),
           h('span', { class: 'slider' }), h('span', { class: 'switch-label' }, '🤝 Someone is recommending me')))
     ),
+    rejectionSection(job),
     h('h3', {}, 'Match'),
     matchPanel(job),
     h('h3', {}, 'Cover letter'),

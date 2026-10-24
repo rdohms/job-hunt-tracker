@@ -106,3 +106,13 @@ button:disabled { opacity: .6; cursor: wait; }
 .m-list.good h4 { color: #16a34a; } .m-list.warn h4 { color: #d97706; } .m-list.bad h4 { color: #dc2626; }
 .m-list ul { margin: 0; padding-left: 18px; }
 .editor, .md { min-height: var(--min-h, 240px); }
+
+/* Rejection */
+.reject-reason { font-size: 11px; color: #dc2626; margin-top: 6px; }
+.rejection { border-left: 3px solid #dc2626; padding-left: 12px; margin-bottom: 20px; }
+.field.wide { grid-column: 1 / -1; }
+.row.end { justify-content: flex-end; }
+.reject-dialog { border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); padding: 20px; width: min(420px, 90vw); }
+.reject-dialog::backdrop { background: #0006; }
+.reject-dialog form { display: flex; flex-direction: column; gap: 12px; }
+.reject-dialog h3 { margin: 0; }
