@@ -64,7 +64,20 @@ Because `DATA_DIR` resolves from the launch directory, the app code and your job
 
 > **Unofficial.** This uses [`notebooklm-py`](https://github.com/teng-lin/notebooklm-py), which drives undocumented Google APIs with your signed-in session. It can break without notice and may violate Google's terms. Use a dedicated account if you can, and use it at your own risk.
 
-You need [`uv`](https://docs.astral.sh/uv/) and a NotebookLM notebook containing your resume and any background you want used.
+You need [`uv`](https://docs.astral.sh/uv/) and a NotebookLM notebook set up as described below.
+
+### Setting up your notebook
+
+The notebook is the only thing the match and cover-letter features know about you, so build it deliberately. Create a notebook in NotebookLM and add sources such as:
+
+- your resume (and older versions if they cover different work)
+- recommendations, reviews and testimonials
+- general information about you: achievements with numbers, projects, skills, career goals, what you want and don't want in a role, location and work-type preferences, salary expectations
+- past cover letters, if you want the output to sound like you
+
+NotebookLM suits this because it is a reference-based space: it answers from the sources you give it, with citations, instead of drawing on general knowledge. That keeps matches and letters tied to what you have actually provided, and the prompts also tell it never to invent experience. It reduces made-up details but does not make them impossible, so read every letter before sending it. The quality of the output follows the quality of the sources: vague sources give vague matches, and anything missing from the notebook will show up as a "gap".
+
+Then copy the notebook's id from its URL (`notebook.google.com/notebook/<id>`) into `NOTEBOOK_ID`.
 
 ```bash
 npm run bridge:login      # once: Google sign-in (downloads Chromium for Playwright)
