@@ -1,7 +1,8 @@
 // Client for the local NotebookLM bridge (bridge/app.py) + prompts for job matching and cover letters.
 
 const BRIDGE_URL = process.env.BRIDGE_URL || 'http://127.0.0.1:8000';
-const NOTEBOOK_ID = process.env.NOTEBOOK_ID || 'REPLACED-NOTEBOOK-ID';
+// Optional: the NotebookLM features are disabled unless a notebook id is configured.
+export const NOTEBOOK_ID = process.env.NOTEBOOK_ID || '';
 
 // NotebookLM keeps one running conversation per notebook, so serialize calls and make every prompt standalone.
 let queue = Promise.resolve();

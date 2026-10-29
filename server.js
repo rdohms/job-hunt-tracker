@@ -1,13 +1,15 @@
+import './env.js';
 import http from 'node:http';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { scrape } from './scraper.js';
-import { askNotebook, matchPrompt, letterPrompt, parseMatch } from './nblm.js';
+import { NOTEBOOK_ID, askNotebook, matchPrompt, letterPrompt, parseMatch } from './nblm.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const DATA = process.env.DATA_DIR || path.join(ROOT, 'data', 'jobs');
+// Where job JSON files live. Relative paths resolve against the current working directory.
+const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 const PUBLIC = path.join(ROOT, 'public');
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -59,7 +61,7 @@ async function api(req, res, url) {
   const [resource, id, sub] = parts;
   if (resource !== 'jobs') return send(res, 404, { error: 'not found' });
 
-  if (req.method === 'GET' && !id) return send(res, 200, { statuses: STATUSES, rejectionReasons: REJECTION_REASONS, jobs: await readAll() });
+  if (req.method === 'GET' && !id) return send(res, 200, { statuses: STATUSES, rejectionReasons: REJECTION_REASONS, features: { notebooklm: Boolean(NOTEBOOK_ID) }, jobs: await readAll() });
 
   if (req.method === 'POST' && !id) {
     const { url: target } = await readBody(req);
@@ -140,6 +142,7 @@ async function api(req, res, url) {
 
   // NotebookLM-backed features. Failures leave the job untouched.
   if (req.method === 'POST' && (sub === 'match' || sub === 'cover-letter')) {
+    if (!NOTEBOOK_ID) return send(res, 501, { error: 'NotebookLM is not configured (set NOTEBOOK_ID)' });
     try {
       let result;
       if (sub === 'match') {
@@ -195,4 +198,4 @@ http
       send(res, 500, { error: e.message });
     }
   })
-  .listen(PORT, '127.0.0.1', () => console.log(`Job tracker running at http://localhost:${PORT}`));
+  .listen(PORT, '127.0.0.1', () => console.log(`Job tracker running at http://localhost:${PORT} (data: ${DATA})`));

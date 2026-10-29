@@ -1,0 +1,19 @@
+{
+  "notes": "",
+  "description": "",
+  "referral": false,
+  "appliedAt": null,
+  "createdAt": "2026-01-05T10:00:00.000Z",
+  "updatedAt": "2026-01-05T10:00:00.000Z",
+  "id": "00000000-0000-4000-8000-000000000003",
+  "title": "Backend Engineer",
+  "company": "Demo Inc",
+  "url": "https://example.com/jobs/backend-engineer",
+  "ats": "Lever",
+  "status": "rejected",
+  "workType": "On-site",
+  "location": "Berlin, Germany",
+  "order": 0,
+  "rejectionReason": "Location / work-type mismatch",
+  "rejectionNotes": "Required 4 days a week in the office."
+}

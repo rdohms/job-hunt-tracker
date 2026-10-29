@@ -8,7 +8,7 @@ const LABELS = {
 };
 const WORK_TYPES = ['', 'Remote', 'Hybrid', 'On-site'];
 
-let state = { statuses: [], rejectionReasons: [], jobs: [] };
+let state = { statuses: [], rejectionReasons: [], features: {}, jobs: [] };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const h = (tag, props = {}, ...kids) => {
@@ -402,6 +402,7 @@ function renderDetail(id) {
   titleInput.addEventListener('blur', () => patch(job, { title: titleInput.value }));
   titleInput.addEventListener('keydown', (e) => e.key === 'Enter' && titleInput.blur());
 
+  const ai = state.features?.notebooklm;
   const notes = mdEditor(job, 'notes', 'Click to add notes (Markdown supported)…');
   const letter = mdEditor(job, 'coverLetter', 'No cover letter yet. Generate one, or click to write your own…', { minHeight: 160 });
 
@@ -443,12 +444,12 @@ function renderDetail(id) {
           h('span', { class: 'slider' }), h('span', { class: 'switch-label' }, '🤝 Someone is recommending me')))
     ),
     rejectionSection(job),
-    h('h3', {}, 'Match'),
-    matchPanel(job),
+    ai && h('h3', {}, 'Match'),
+    ai && matchPanel(job),
     h('h3', {}, 'Cover letter'),
     letter.el,
     h('div', { class: 'row' },
-      aiButton(job.coverLetter ? '↻ Regenerate letter' : 'Generate cover letter', job, 'cover-letter', ['coverLetter', 'coverLetterAt']),
+      ai && aiButton(job.coverLetter ? '↻ Regenerate letter' : 'Generate cover letter', job, 'cover-letter', ['coverLetter', 'coverLetterAt']),
       job.coverLetter && h('button', { class: 'secondary', onclick: async (e) => {
         await navigator.clipboard.writeText(job.coverLetter);
         e.target.textContent = 'Copied ✓';

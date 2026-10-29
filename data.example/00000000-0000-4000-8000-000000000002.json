@@ -1,0 +1,18 @@
+{
+  "notes": "Intro call with the hiring manager went well.\n\n**Next:** system design round.\n",
+  "description": "",
+  "referral": true,
+  "appliedAt": "2026-01-08T09:00:00.000Z",
+  "createdAt": "2026-01-05T10:00:00.000Z",
+  "updatedAt": "2026-01-05T10:00:00.000Z",
+  "id": "00000000-0000-4000-8000-000000000002",
+  "title": "Staff Platform Engineer",
+  "company": "Sample Labs",
+  "url": "https://example.com/jobs/staff-platform-engineer",
+  "ats": "Ashby",
+  "status": "interviewing",
+  "pay": "$190,000 \u2013 $230,000",
+  "workType": "Hybrid",
+  "location": "Toronto, Canada",
+  "order": 0
+}

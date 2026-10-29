@@ -1,10 +1,13 @@
 // Starts the tracker (Node) and the NotebookLM bridge (Python/uv) together.
+import '../env.js';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BRIDGE_PORT = process.env.BRIDGE_PORT || '8000';
+// Children run with cwd=ROOT, so pin a relative DATA_DIR to where the user launched from.
+if (process.env.DATA_DIR) process.env.DATA_DIR = path.resolve(process.env.DATA_DIR);
 
 const procs = [];
 const start = (name, color, cmd, args, env = {}) => {
@@ -20,12 +23,16 @@ const start = (name, color, cmd, args, env = {}) => {
 };
 
 const tracker = start('tracker', 36, 'node', ['server.js']);
-const bridge = start('bridge', 35, 'uv', [
-  'run', '--project', 'bridge', 'uvicorn', 'app:app', '--app-dir', 'bridge', '--host', '127.0.0.1', '--port', BRIDGE_PORT,
-]);
+// The bridge (NotebookLM) is optional: only started when a notebook is configured.
+const bridge = process.env.NOTEBOOK_ID
+  ? start('bridge', 35, 'uv', [
+      'run', '--project', 'bridge', 'uvicorn', 'app:app', '--app-dir', 'bridge', '--host', '127.0.0.1', '--port', BRIDGE_PORT,
+    ])
+  : null;
+if (!bridge) console.log('[bridge] NOTEBOOK_ID not set: NotebookLM features disabled, starting tracker only');
 
-// The bridge is optional: if it dies the tracker keeps running. If the tracker dies, stop everything.
-bridge.on('exit', (code) => console.log(`\x1b[35m[bridge]\x1b[0m exited (${code}); tracker still running`));
+// If the bridge dies the tracker keeps running. If the tracker dies, stop everything.
+bridge?.on('exit', (code) => console.log(`\x1b[35m[bridge]\x1b[0m exited (${code}); tracker still running`));
 tracker.on('exit', (code) => shutdown(code ?? 0));
 
 let closing = false;

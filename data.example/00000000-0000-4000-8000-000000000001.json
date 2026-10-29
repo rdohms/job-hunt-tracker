@@ -1,0 +1,18 @@
+{
+  "notes": "## Questions\n- [ ] Team size?\n- [ ] On-call expectations?\n",
+  "description": "",
+  "referral": false,
+  "appliedAt": null,
+  "createdAt": "2026-01-05T10:00:00.000Z",
+  "updatedAt": "2026-01-05T10:00:00.000Z",
+  "id": "00000000-0000-4000-8000-000000000001",
+  "title": "Senior Software Engineer",
+  "company": "Example Corp",
+  "url": "https://example.com/careers/senior-software-engineer",
+  "ats": "Greenhouse",
+  "status": "saved",
+  "pay": "$150,000 \u2013 $180,000",
+  "workType": "Remote",
+  "location": "United States",
+  "order": 0
+}
