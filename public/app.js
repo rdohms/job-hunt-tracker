@@ -3,9 +3,20 @@ import { renderMarkdown, toggleTask } from './markdown.js';
 const app = document.getElementById('app');
 const toastEl = document.getElementById('toast');
 const LABELS = {
-  saved: 'Saved', applied: 'Applied', screening: 'Screening',
+  saved: 'Saved', outreach: 'Outreach', applied: 'Applied', screening: 'Screening',
   interviewing: 'Interviewing', offer: 'Offer', rejected: 'Rejected',
 };
+const HELP = {
+  saved: 'Found it and interested. No work done yet.',
+  outreach: 'Before applying: finding an internal referral or contact, and prepping (tailored resume, letter, company research).',
+  applied: 'Application (or referral) submitted. Waiting to hear back.',
+  screening: 'Early filters before the team: recruiter or HR call, questionnaires, online assessments, take-homes.',
+  interviewing: 'Live rounds with the team: hiring manager, technical, panel or onsite loop.',
+  offer: 'An offer is on the table: negotiating or deciding.',
+  rejected: 'Closed without an offer: rejected, ghosted, withdrawn, or position filled.',
+};
+// Statuses that share one board slot, stacked top to bottom, to keep the board narrow.
+const STACKS = [['screening', 'interviewing']];
 const WORK_TYPES = ['', 'Remote', 'Hybrid', 'On-site'];
 
 let state = { statuses: [], rejectionReasons: [], features: {}, jobs: [] };
@@ -104,11 +115,14 @@ function renderBoard() {
     const col = h(
       'section',
       { class: `column s-${status}`, 'data-status': status },
-      h('h2', {}, LABELS[status], h('span', { class: 'count' }, String(jobs.length))),
+      h('h2', { title: HELP[status] }, LABELS[status], h('span', { class: 'count' }, String(jobs.length))),
       cards
     );
     wireDropZone(col, cards);
-    board.append(col);
+    const stack = STACKS.find((g) => g.includes(status));
+    if (!stack) board.append(col);
+    else if (stack[0] === status) board.append(h('div', { class: 'stack' }, col));
+    else board.lastElementChild.append(col);
   }
   app.replaceChildren(board);
 }

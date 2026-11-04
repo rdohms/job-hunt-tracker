@@ -20,7 +20,16 @@ npm start                   # http://localhost:3000
 ## Using it
 
 - **Add a job:** paste a URL into the top bar, or paste or drop a link anywhere on the board. The card lands in **Saved**.
-- **Move it:** drag cards between Saved, Applied, Screening, Interviewing, Offer and Rejected. Dropping into Rejected asks for a reason and notes (skippable).
+- **Move it:** drag cards between Saved, Outreach (finding referrals and prepping), Applied, Screening, Interviewing, Offer and Rejected. Dropping into Rejected asks for a reason and notes (skippable).
+  - **Saved:** found it and interested, no work done yet.
+  - **Outreach:** before applying; finding an internal referral or contact and prepping (tailored resume, letter, research).
+  - **Applied:** application or referral submitted, waiting to hear back.
+  - **Screening:** early filters before the team: recruiter or HR call, questionnaires, assessments, take-homes.
+  - **Interviewing:** live rounds with the team: hiring manager, technical, panel or onsite loop.
+  - **Offer:** an offer is on the table; negotiating or deciding.
+  - **Rejected:** closed without an offer (rejected, ghosted, withdrawn, position filled).
+
+  Screening and Interviewing share one board slot, stacked. Hover a column title for its definition.
 - **Open it:** click a card for the full page. Fields autosave. Notes are inline Markdown: click to edit, Esc or Cmd+Enter to render. `- [ ]` task checkboxes can be ticked directly.
 - **Re-scrape:** the job page has a button to re-fetch scraped fields. Notes, status and referral are kept.
 - **Insider referral:** a 🤝 toggle on each card and job page.

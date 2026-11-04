@@ -29,7 +29,7 @@ button.danger { background: transparent; color: var(--danger); border: 1px solid
 .column.over { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
 .column h2 { margin: 2px 4px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: flex; justify-content: space-between; }
 .count { background: var(--border); border-radius: 10px; padding: 0 8px; }
-.s-applied { border-top-color: #3b82f6; } .s-screening { border-top-color: #a855f7; }
+.s-outreach { border-top-color: #14b8a6; } .s-applied { border-top-color: #3b82f6; } .s-screening { border-top-color: #a855f7; }
 .s-interviewing { border-top-color: #f59e0b; } .s-offer { border-top-color: #22c55e; } .s-rejected { border-top-color: #ef4444; }
 .cards { display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
 .card { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: grab; box-shadow: 0 1px 2px #0001; }
@@ -116,3 +116,7 @@ button:disabled { opacity: .6; cursor: wait; }
 .reject-dialog::backdrop { background: #0006; }
 .reject-dialog form { display: flex; flex-direction: column; gap: 12px; }
 .reject-dialog h3 { margin: 0; }
+
+/* Stacked columns share one board slot */
+.stack { flex: 0 0 272px; display: flex; flex-direction: column; gap: 12px; }
+.stack .column { flex: none; }

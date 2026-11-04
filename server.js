@@ -13,7 +13,7 @@ const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 const PUBLIC = path.join(ROOT, 'public');
 const PORT = Number(process.env.PORT) || 3000;
 
-const STATUSES = ['saved', 'applied', 'screening', 'interviewing', 'offer', 'rejected'];
+const STATUSES = ['saved', 'outreach', 'applied', 'screening', 'interviewing', 'offer', 'rejected'];
 const REJECTION_REASONS = [
   'No response / ghosted',
   'Rejected after application review',
